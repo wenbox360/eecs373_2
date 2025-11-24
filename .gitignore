@@ -1,0 +1,23 @@
+/Drivers/*
+/Debug/* 
+/Core/Startup/*
+/.settings
+/Final_Project_373_2 Debug.launch
+/ Debug.launch
+/STM32L4R5ZITXP_RAM.ld
+/STM32L4R5ZITXP_FLASH.ld
+fp3/Drivers/*
+fp3/Debug/* 
+fp3/Core/Startup/*
+fp3/.settings
+fp3/.*
+fp3/ Debug.launch
+fp3/STM32L4R5ZITXP_RAM.ld
+fp3/STM32L4R5ZITXP_FLASH.ld
+fp3/fp3 Debug.launch
+.metadata/*
+.DS_Store
+.gitignore.swp
+.mxproject
+.project
+.cproject
