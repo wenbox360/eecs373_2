@@ -109,19 +109,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
     if (huart->Instance == USART1) {
 
-//    	if(startup){
-//    		// First callback is for the 7-byte response, now start 84-byte receptions
-//    		startup = false;
-//
-//    		HAL_UART_Receive_DMA(&huart1, rx_buffer + next_k * 100, 100);
-//
-//    	}
-//		else{
+    	if(startup){
+    		// First callback is for the 7-byte response, now start 84-byte receptions
+    		startup = false;
+    		HAL_UART_Receive_DMA(&huart1, rx_buffer + next_k * 100, 100);
+
+    	}
+		else{
 			// Mark which buffer is ready for processing (will be processed in main loop)
 			data_ready_k = k;
 
 			// Immediately start next DMA Transmit to avoid overrun
-			HAL_UART_Receive_DMA(&huart1, rx_buffer + next_k * 5, 5);
+			HAL_UART_Receive_DMA(&huart1, rx_buffer + next_k * 100, 100);
 
 //			memcpy(copy_buffer, rx_buffer + 5 * k, 5);
 
@@ -132,7 +131,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	    	// Rotate buffer indices for next iteration
 			k = next_k;
 			next_k = (next_k + 1) % 3;
-//		}
+		}
     }
 }
 /* USER CODE END 0 */
@@ -218,7 +217,9 @@ int main(void)
 
 		  uint8_t buffer_to_process = data_ready_k;
 		  data_ready_k = 0xFF;
-		  decode_normal_scan(rx_buffer + buffer_to_process*5);
+		  for(int i = 0; i < 20; i++){
+			  decode_normal_scan(rx_buffer + buffer_to_process*100 + 5*i);
+		  }
 		  decoded++;
 		  ILI9341_DisplayFrame(&hspi1);
 		  displayed++;
