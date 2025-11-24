@@ -41,6 +41,10 @@ uint16_t pongframe[WIDTH*HEIGHT];
   };
 
 
+// void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+// {
+//     CS_HIGH(); // End the SPI transaction
+// }
 
 void WriteCommand(uint8_t cmd, SPI_HandleTypeDef* hspi_addr){
 
@@ -187,64 +191,41 @@ void DrawLine(){
 
 
 // Send the frame buffer to the display
-
-void ILI9341_DisplayFrame(SPI_HandleTypeDef* hspi_addr){
-
-
-    if (f == pingframe && new_scan_flag){
+void ILI9341_DisplayFrame(SPI_HandleTypeDef* hspi_addr) {
+    if (f == pingframe && new_scan_flag) {
         FillFrame(pongframe, 0x0000);
         new_scan_flag = false;
-    }
-    else if (f == pongframe && new_scan_flag){
+    } else if (f == pongframe && new_scan_flag) {
         FillFrame(pingframe, 0x0000);
         new_scan_flag = false;
     }
 
-
     DrawLine();
 
-
-
-    // Column address: 0 → WIDTH-1
-
+    // Set column address
     WriteCommand(0x2A, hspi_addr);
-
     uint8_t col[4] = {0x00, 0x00, (WIDTH-1)>>8, (WIDTH-1)&0xFF};
-
     WriteData(col, 4, hspi_addr);
 
-
-
-    // Page address: 0 → HEIGHT-1
-
+    // Set page address
     WriteCommand(0x2B, hspi_addr);
-
     uint8_t page[4] = {0x00, 0x00, (HEIGHT-1)>>8, (HEIGHT-1)&0xFF};
-
     WriteData(page, 4, hspi_addr);
 
-
-
     // Memory write
-
     WriteCommand(0x2C, hspi_addr);
-
     DC_HIGH();
-
     CS_LOW();
 
-
-
-    // Send row by row to ensure correct orientation
-
-    for(uint16_t y=0; y<HEIGHT; y++){
-
-        HAL_SPI_Transmit(hspi_addr, (uint8_t*)&f[y*WIDTH], WIDTH*2, HAL_MAX_DELAY);
-
+    // Send the frame buffer in chunks (max 65535 bytes per call)
+    uint32_t total_bytes = WIDTH * HEIGHT * 2; // 153600 bytes
+    uint32_t offset = 0;
+    while (total_bytes > 0) {
+        uint32_t chunk = (total_bytes > 65535) ? 65535 : total_bytes;
+        HAL_SPI_Transmit(hspi_addr, (uint8_t*)f + offset, chunk, HAL_MAX_DELAY);
+        offset += chunk;
+        total_bytes -= chunk;
     }
 
-
-
     CS_HIGH();
-
 }
