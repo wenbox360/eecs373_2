@@ -51,7 +51,7 @@ volatile uint8_t data_ready_k = 0xFF; // 0xFF = no data ready, 0-2 = which buffe
 HAL_StatusTypeDef type = HAL_OK;
 bool ready_t = true;
 
-bool zone_mode = true;
+bool zone_mode = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -179,13 +179,19 @@ int main(void)
   // Small delay for LIDAR to be ready
   HAL_Delay(5000);
 
+
+  while (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
+      volatile uint8_t dummy = huart1.Instance->RDR;
+  }
+
+  __HAL_UART_CLEAR_IT(&huart1,  UART_CLEAR_OREF);
+
   // Start DMA reception ready for incoming data
-  HAL_UART_Receive_DMA(&huart1, rx_buffer, 8);
+  HAL_UART_Receive_DMA(&huart1, rx_buffer, 7);
 
   HAL_Delay(1000);
   // Send the express scan command
   send_scan_command(&huart1);
-  __HAL_UART_CLEAR_IT(&huart1,  UART_CLEAR_OREF);
 
 
   /* USER CODE END 2 */
