@@ -58,11 +58,13 @@
 
 #define HEIGHT 320
 
-#define GRID_DIM 8
+#define GRID_DIM 16
 
 #define MAX_DIST 2000
 
 #define MAX_RADIUS (WIDTH/2 - 10)
+
+#define FILTER_THRESHOLD 70
 
 extern uint8_t zone[GRID_DIM*GRID_DIM];
 

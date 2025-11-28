@@ -28,7 +28,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -51,6 +51,9 @@ HAL_StatusTypeDef type = HAL_OK;
 bool ready_t = true;
 
 bool zone_mode = false;
+bool filter_mode = true;
+extern bool zone_detected[GRID_DIM*GRID_DIM];
+extern uint16_t zone_history[GRID_DIM*GRID_DIM];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -220,51 +223,54 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	//   if(data_ready_k != 0xFF){
+    if (data_ready_k != 0xFF) {
+      FillFrame(pingframe, 0x0000);
+      uint8_t buffer_to_process = data_ready_k;
+      data_ready_k = 0xFF;
 
-	// 	  uint8_t buffer_to_process = data_ready_k;
-	// 	  data_ready_k = 0xFF;
-	// 	  for(int i = 0; i < 40; i++){
-	// 		  decode_normal_scan(rx_buffer + buffer_to_process*200 + 5*i);
-	// 	  }
-	// 	  decoded++;
-	// 	  ILI9341_DisplayFrame(&hspi1);
-	// 	  displayed++;
-	//   }
-
-	//   if(HAL_GPIO_ReadPin (GPIOG, GPIO_PIN_0)){
-	// 	  zone_mode = true;
-	//   } else{
-	// 	  zone_mode = false;
-	//   }
-  // }
-
-  if (data_ready_k != 0xFF) {
-          FillFrame(pingframe, 0x0000);
-          uint8_t buffer_to_process = data_ready_k;
-          data_ready_k = 0xFF;
-
-          // Process the buffer, accounting for potential shifts in decode_normal_scan
-          uint8_t* current_packet = rx_buffer + buffer_to_process * 1000;
-          uint8_t* buffer_end = current_packet + 1000; // End of the buffer
-
-          while (current_packet + 5 <= buffer_end) { // Ensure at least 5 bytes remain
-              if (decode_normal_scan(current_packet)) {
-                  current_packet += 5; // Move to the next packet only if valid
-              } else {
-                  current_packet++; // Skip to the next byte for invalid packets
-              }
-          }
-
-          decoded++;
-          ILI9341_DisplayFrame(&hspi1);
-          displayed++;
+      if (new_scan_flag) {
+          memset(zone, 0, sizeof(zone));
+          new_scan_flag = false;
       }
 
-      if(HAL_GPIO_ReadPin (GPIOG, GPIO_PIN_0)){
+      // Process the buffer, accounting for potential shifts in decode_normal_scan
+      uint8_t* current_packet = rx_buffer + buffer_to_process * 1000;
+      uint8_t* buffer_end = current_packet + 1000; // End of the buffer
+
+      while (current_packet + 5 <= buffer_end) { // Ensure at least 5 bytes remain
+          if (decode_normal_scan(current_packet)) {
+              current_packet += 5; // Move to the next packet only if valid
+          } else {
+              current_packet++; // Skip to the next byte for invalid packets
+          }
+      }
+
+      for(int i = 0; i < GRID_DIM*GRID_DIM; i++){
+
+        if(zone_detected[i]){
+          if(zone_history[i] < 100){
+              zone_history[i] += 10; 
+          }
+        }
+        else{
+          if(zone_history[i] > 0){
+              zone_history[i] -= 10;  // use faster decay to clear old detections
+          } else {
+            zone_history[i] = 0;  
+          }
+        }
+      }
+      memset(zone_detected, 0, sizeof(zone_detected)); 
+
+      decoded++;
+      ILI9341_DisplayFrame(&hspi1);
+      displayed++;
+    }
+          
+    if(HAL_GPIO_ReadPin (GPIOG, GPIO_PIN_0)){
 		  zone_mode = false;
 	  } else{
-		  zone_mode = true;
+		  zone_mode = false;
 	  }
   }
   /* USER CODE END 3 */

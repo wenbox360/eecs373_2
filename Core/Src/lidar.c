@@ -147,8 +147,11 @@ bool decode_normal_scan(uint8_t* capsule_data) {
         return false; // Invalid packet
     }
 
-    // if (new_scan){
-	// 	new_scan_flag = true;
+	
+
+    if (new_scan){
+		new_scan_flag = true;
+	}
 	// 	if (f == pingframe) f = pongframe;
 	// 	else if (f == pongframe) f = pingframe;
 	// }

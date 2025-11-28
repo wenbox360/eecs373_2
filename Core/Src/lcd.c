@@ -17,6 +17,11 @@
 #include <string.h>
 #include <stdbool.h>
 
+
+bool zone_detected[GRID_DIM*GRID_DIM];
+
+uint16_t zone_history[GRID_DIM*GRID_DIM];
+
 uint8_t zone[GRID_DIM*GRID_DIM];
 
 uint16_t pingframe[WIDTH*HEIGHT];
@@ -35,6 +40,7 @@ uint16_t bg_colors[6] = {
  };
 
 extern bool zone_mode;
+extern bool filter_mode;
 
 void WriteCommand(uint8_t cmd, SPI_HandleTypeDef* hspi_addr){
     DC_LOW();
@@ -146,6 +152,10 @@ void UpdateZone(float angle, float dist) {
 
     uint8_t idx = cell_y * GRID_DIM + cell_x;
     if (zone[idx] < 255) zone[idx]++; // Prevent overflow
+
+    if(filter_mode){
+        zone_detected[idx] = true;
+    }
 }
 
 void DrawZone(void) {
@@ -169,9 +179,14 @@ void DrawZone(void) {
             uint8_t idx = gy * GRID_DIM + gx;
             uint8_t count = zone[idx];
 
-            // Choose color based on count
-            uint16_t color;
-            if (count == 0) {
+            if (filter_mode && zone_history[idx] >= FILTER_THRESHOLD) {
+                // Completely skip static cells (leave black)
+                continue;
+            }
+
+            uint16_t color; // Choose color based on count
+
+            if (count == 0 || (filter_mode && count <= 3)) {
                 continue; // Skip empty cells (leave black)
             } else if (count == 1) {
                 color = colors[0];
@@ -261,6 +276,8 @@ void ILI9341_DisplayFrame(SPI_HandleTypeDef* hspi_addr) {
     //     memset(zone, 0, sizeof(zone));
     //     new_scan_flag = false;
     // }
+
+    //memset(zone, 0, sizeof(zone));
 
     DrawLine();
 
