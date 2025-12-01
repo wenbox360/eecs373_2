@@ -197,9 +197,9 @@ void UpdateZone(float angle, float dist) {
     uint8_t idx = cell_y * GRID_DIM + cell_x;
     if (zone[idx] < 255) zone[idx]++; // Prevent overflow
 
-    if(filter_mode){
-        zone_detected[idx] = true;
-    }
+    //if(filter_mode){
+    zone_detected[idx] = true;
+    //}
 }
 
 void DrawZone(void) {
