@@ -1,8 +1,3 @@
- *      Author: darrendong
-
- */
-
-
 
 #include "lcd.h"
 #include <stdio.h>
@@ -127,6 +122,8 @@ void DrawPoint(float angle, float dist){
 
     // Clamp distance to screen bounds
     if (distance_pixels > MAX_RADIUS) {
+    	//SKIP for now
+    	return;
         distance_pixels = MAX_RADIUS;
     }
 
@@ -171,6 +168,8 @@ void coneZone(float angle, float dist){
 
 	    // Clamp distance to screen bounds
 	    if (distance_pixels > MAX_RADIUS) {
+	    	//SKIP for now
+	    	return;
 	        distance_pixels = MAX_RADIUS;
 	    }
 
@@ -214,6 +213,8 @@ void UpdateZone(float angle, float dist) {
 
     // Clamp distance to screen bounds
     if (distance_pixels > MAX_RADIUS) {
+    	//SKIP for now
+    	return;
         distance_pixels = MAX_RADIUS;
     }
 

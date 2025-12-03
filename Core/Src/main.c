@@ -44,6 +44,7 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
+TIM_HandleTypeDef htim5;
 DMA_HandleTypeDef hdma_tim3_ch2;
 
 /* USER CODE BEGIN PV */
@@ -57,7 +58,7 @@ bool startup = true;
 volatile uint8_t data_ready_k = 0xFF; // 0xFF = no data ready, 0-2 = which buffer is ready
 HAL_StatusTypeDef type = HAL_OK;
 bool ready_t = true;
-
+bool retry_conn = true;
 bool zone_mode = false;
 bool filter_mode = false;
 extern bool zone_detected[GRID_DIM*GRID_DIM];
@@ -80,6 +81,7 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
+static void MX_TIM5_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -123,15 +125,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     }
     
     if (htim->Instance == TIM2) {
-        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_RESET);
         HAL_TIM_Base_Stop_IT(&htim2);
         left_haptic_triggered = false;
 
     }
     if (htim->Instance == TIM4) {
-        HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_RESET);
         HAL_TIM_Base_Stop_IT(&htim4);
         right_haptic_triggered = false;
+    }
+    if(htim->Instance == TIM5){
+    	retry_conn = !retry_conn;
     }
 }
 
@@ -175,6 +180,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
+  MX_TIM5_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(1000); // Sleep out
   ILI9341_Reset();
@@ -272,7 +278,7 @@ int main(void)
       displayed++;
     }
 
-    if(startup){
+    if(startup && retry_conn){
       // while (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_RXNE)) {
       //     volatile uint8_t dummy = huart1.Instance->RDR;
       //   }
@@ -281,7 +287,6 @@ int main(void)
       HAL_UART_Receive_DMA(&huart1, rx_buffer, 7);
       send_scan_command(&huart1);
       ILI9341_DisplayFrame(&hspi1);
-//      HAL_Delay(2000);
     }
 
     // If read low, meaning pushed then start the corresponding mode
@@ -298,7 +303,7 @@ int main(void)
     }
 
     // Left
-    if(!HAL_GPIO_ReadPin (GPIOB, GPIO_PIN_0)){
+    if(!HAL_GPIO_ReadPin (GPIOE, GPIO_PIN_2)){
       //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
     	 WS2812_SetLED(13, 255, 0, 0); // Red
     	 WS2812_SetLED(14, 255, 0, 0);   // OFF
@@ -309,9 +314,9 @@ int main(void)
       //  for(int i = 0; i < GRID_DIM; i++){
       //    for(int j = 0; j < GRID_DIM/2; j++){
       //      if(zone_history[i*GRID_DIM + j] > 0){
-              HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
+              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_1, GPIO_PIN_SET);
               left_haptic_triggered = true;
-              HAL_TIM_Base_Start_IT(&htim3);
+              HAL_TIM_Base_Start_IT(&htim2);
               //break;
       //      }
       //    }
@@ -324,7 +329,7 @@ int main(void)
     	WS2812_Send();
     }
     // Right
-    if(!HAL_GPIO_ReadPin (GPIOE, GPIO_PIN_0)){
+    if(!HAL_GPIO_ReadPin (GPIOD, GPIO_PIN_7)){
     	WS2812_SetLED(16, 255, 0, 0); // Red
     	WS2812_SetLED(17, 255, 0, 0);   // OFF
     	WS2812_SetLED(18, 255, 0, 0);   // OFF
@@ -334,7 +339,7 @@ int main(void)
       //  for(int i = 0; i < GRID_DIM; i++){
       //    for(int j = GRID_DIM/2; j < GRID_DIM; j++){
       //      if(zone_history[i*GRID_DIM + j] > 0){
-              HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_SET);
+              HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_SET);
               right_haptic_triggered = true;
               HAL_TIM_Base_Start_IT(&htim4);
       //         break;
@@ -784,6 +789,51 @@ static void MX_TIM4_Init(void)
 }
 
 /**
+  * @brief TIM5 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM5_Init(void)
+{
+
+  /* USER CODE BEGIN TIM5_Init 0 */
+
+  /* USER CODE END TIM5_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM5_Init 1 */
+
+  /* USER CODE END TIM5_Init 1 */
+  htim5.Instance = TIM5;
+  htim5.Init.Prescaler = 3000;
+  htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim5.Init.Period = 65000;
+  htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim5) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim5, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim5, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM5_Init 2 */
+
+  /* USER CODE END TIM5_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -822,21 +872,30 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOG_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   HAL_PWREx_EnableVddIO2();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12|GPIO_PIN_1, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PE2 PE3 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3;
+  /*Configure GPIO pins : PE2 PE9 PE0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_9|GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PE3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -904,11 +963,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PE9 PE0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_0;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  /*Configure GPIO pin : PG0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PE10 PE11 PE12 */
   GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
@@ -933,8 +993,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF14_TIM15;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PD12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  /*Configure GPIO pins : PD12 PD1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -994,6 +1054,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PD7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB3 PB4 PB5 */
