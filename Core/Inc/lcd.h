@@ -87,6 +87,7 @@ void DrawZone(void);
 
 void UpdateZone(float angle, float dist);
 
+void coneZone(float angle, float dist);
 
 
 void WriteCommand(uint8_t cmd, SPI_HandleTypeDef* hspi_addr);

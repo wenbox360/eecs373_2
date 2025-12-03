@@ -1,11 +1,3 @@
-/*
-
- * lcd.c
-
- *
-
- *  Created on: Nov 20, 2025
-
  *      Author: darrendong
 
  */
@@ -162,6 +154,53 @@ void DrawPoint(float angle, float dist){
     f[(y - 1)*WIDTH + x + 1] = color;
     f[(y + 1)*WIDTH + x - 1] = color;
     f[(y + 1)*WIDTH + x + 1] = color;
+
+}
+
+void coneZone(float angle, float dist){
+	    uint16_t color = 0x001F; // pure blue
+	    uint8_t OFFSET = 120;    // center of screen
+
+
+	    // Ignore invalid distances
+	    if (dist <= 0 || dist > MAX_DIST * 2) {
+	        return;
+	    }
+
+	    int distance_pixels = dist * MAX_RADIUS / MAX_DIST; // scale to screen
+
+	    // Clamp distance to screen bounds
+	    if (distance_pixels > MAX_RADIUS) {
+	        distance_pixels = MAX_RADIUS;
+	    }
+
+	    for (int i = distance_pixels; i <= MAX_RADIUS; i++){
+
+			int x = OFFSET + i * sin(angle * M_PI / 180.0); // flip x-axis
+
+			int y = OFFSET + i * cos(angle * M_PI / 180.0); // y downward
+
+			// Bounds check: must leave room for 3x3 block (1 pixel margin on each side)
+			if (x < 1 || x >= WIDTH - 1 || y < 1 || y >= HEIGHT - 1) {
+				return;
+			}
+
+			// Verify buffer pointer is valid
+			if (f == NULL) {
+				return;
+			}
+
+			// draw a 3x3 pixel block (now safe because we checked bounds above)
+			f[y*WIDTH + x] = color;
+			f[y*WIDTH + x + 1] = color;
+			f[y*WIDTH + x - 1] = color;
+			f[(y - 1)*WIDTH + x] = color;
+			f[(y + 1)*WIDTH + x] = color;
+			f[(y - 1)*WIDTH + x - 1] = color;
+			f[(y - 1)*WIDTH + x + 1] = color;
+			f[(y + 1)*WIDTH + x - 1] = color;
+			f[(y + 1)*WIDTH + x + 1] = color;
+		}
 
 }
 
