@@ -46,6 +46,7 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 TIM_HandleTypeDef htim5;
+TIM_HandleTypeDef htim8;
 DMA_HandleTypeDef hdma_tim3_ch2;
 
 /* USER CODE BEGIN PV */
@@ -63,6 +64,7 @@ bool ready_t = true;
 bool retry_conn = true;
 bool zone_mode = false;
 bool filter_mode = false;
+bool led_state = true;
 extern bool zone_detected[GRID_DIM*GRID_DIM];
 extern uint16_t zone_history[GRID_DIM*GRID_DIM];
 
@@ -84,6 +86,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
+static void MX_TIM8_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -106,14 +109,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     		startup = false;
     		HAL_UART_Receive_DMA(&huart1, rx_buffer + next_k * LIDAR_BUFFER_SIZE, LIDAR_BUFFER_SIZE);
     	}
-      else{
-        data_ready_k = k;
-        HAL_UART_Receive_DMA(&huart1, rx_buffer + next_k * LIDAR_BUFFER_SIZE, LIDAR_BUFFER_SIZE);
-      }
+    	else{
+    	  data_ready_k = k;
+    	  HAL_UART_Receive_DMA(&huart1, rx_buffer + next_k * LIDAR_BUFFER_SIZE, LIDAR_BUFFER_SIZE);
+        }
       // Rotate buffer indices for next iteration
     	k = next_k;
     	next_k = (next_k + 1) % 4;
-      count = 0;
+    	count = 0;
     }
 }
 
@@ -132,13 +135,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
         left_haptic_triggered = false;
 
     }
+
     if (htim->Instance == TIM4) {
         HAL_GPIO_WritePin(GPIOG, GPIO_PIN_0, GPIO_PIN_RESET);
         HAL_TIM_Base_Stop_IT(&htim4);
         right_haptic_triggered = false;
     }
+
     if(htim->Instance == TIM5){
     	retry_conn = !retry_conn;
+    }
+
+    if(htim->Instance == TIM8){
+    	led_state = !led_state;
     }
 }
 
@@ -183,6 +192,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM5_Init();
+  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(1000); // Sleep out
   ILI9341_Reset();
@@ -224,6 +234,7 @@ int main(void)
   send_scan_command(&huart1);
   HAL_TIM_Base_Start_IT(&htim1);
   HAL_TIM_Base_Start_IT(&htim5);
+  HAL_TIM_Base_Start_IT(&htim8);
 
 
   /* USER CODE END 2 */
@@ -315,10 +326,17 @@ int main(void)
 
     if(!HAL_GPIO_ReadPin (GPIOE, GPIO_PIN_2)){
       //HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
-    	 WS2812_SetLED(12, 255, 0, 0); // Red
-    	 WS2812_SetLED(13, 255, 0, 0);   // OFF
-    	 WS2812_SetLED(14, 255, 0, 0);   // OFF
-    	 WS2812_Send();
+    	if(led_state){
+    		WS2812_SetLED(12, 255, 0, 0); // Red
+			WS2812_SetLED(13, 255, 0, 0);   // OFF
+			WS2812_SetLED(14, 255, 0, 0);   // OFF
+			WS2812_Send();
+    	} else{
+    		WS2812_SetLED(12, 0, 0, 0); // Red
+    		WS2812_SetLED(13, 0, 0, 0);   // OFF
+    		WS2812_SetLED(14, 0, 0, 0);   // OFF
+    		WS2812_Send();
+    	}
        // Haptics
        if(!left_haptic_triggered){
 
@@ -354,10 +372,17 @@ int main(void)
     }
     // Right
     if(!HAL_GPIO_ReadPin (GPIOD, GPIO_PIN_7)){
-    	WS2812_SetLED(15, 255, 0, 0); // Red
-    	WS2812_SetLED(16, 255, 0, 0);   // OFF
-    	WS2812_SetLED(17, 255, 0, 0);   // OFF
-    	WS2812_Send();
+    	if(led_state){
+			WS2812_SetLED(15, 255, 0, 0); // Red
+			WS2812_SetLED(16, 255, 0, 0);   // OFF
+			WS2812_SetLED(17, 255, 0, 0);   // OFF
+			WS2812_Send();
+    	} else{
+    		WS2812_SetLED(15, 0, 0, 0); // Red
+			WS2812_SetLED(16, 0, 0, 0);   // OFF
+			WS2812_SetLED(17, 0, 0, 0);   // OFF
+			WS2812_Send();
+    	}
       // Haptics
 
        if(!right_haptic_triggered){
@@ -695,7 +720,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 4000;
+  htim2.Init.Prescaler = 2000;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 65535;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -799,7 +824,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 4000;
+  htim4.Init.Prescaler = 2000;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 65535;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -867,6 +892,53 @@ static void MX_TIM5_Init(void)
   /* USER CODE BEGIN TIM5_Init 2 */
 
   /* USER CODE END TIM5_Init 2 */
+
+}
+
+/**
+  * @brief TIM8 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM8_Init(void)
+{
+
+  /* USER CODE BEGIN TIM8_Init 0 */
+
+  /* USER CODE END TIM8_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM8_Init 1 */
+
+  /* USER CODE END TIM8_Init 1 */
+  htim8.Instance = TIM8;
+  htim8.Init.Prescaler = 800;
+  htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim8.Init.Period = 65535;
+  htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim8.Init.RepetitionCounter = 0;
+  htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim8, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim8, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM8_Init 2 */
+
+  /* USER CODE END TIM8_Init 2 */
 
 }
 
