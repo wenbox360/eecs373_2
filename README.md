@@ -2,6 +2,8 @@
 
 ## Section 1: Project Overview
 
+https://youtu.be/GpOMEJVBbVM
+
 The project is a bike utility designed to enhance biker safety and information. The system detects vehicles approaching in the biker blind spot and notifies the user. The system also provides real-time data such as objects around the user and the user's speed on an integrated LCD display. The biker can use buttons to light right or left turn signals on the bike.
 
 The project is developed for **STM32L4+ Series Arm-based 32-bit MCUs**. The IDE used for development is **STM32CubeIDE**. This project was developed with **C**.
